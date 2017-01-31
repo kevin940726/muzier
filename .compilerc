@@ -10,7 +10,8 @@
                 "electron": "1.4.15"
               }
             }
-          ]
+          ],
+          "stage-0"
         ],
         "plugins": [
           "transform-async-to-generator",
@@ -29,7 +30,8 @@
                 "electron": "1.4.15"
               }
             }
-          ]
+          ],
+          "stage-0"
         ],
         "plugins": [
           "transform-async-to-generator",
