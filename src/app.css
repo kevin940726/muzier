@@ -1,0 +1,41 @@
+.input-playlist {
+  position: fixed;
+  padding: 20px;
+  width: 100%;
+  height: 100px;
+  background-color: #FFF;
+  border-bottom: 1px solid #EEE;
+  z-index: 10;
+  left: 0;
+  top: 0;
+}
+
+.playlist {
+  margin-top: 100px;
+  padding: 20px;
+  margin-bottom: 70px;
+}
+
+.video {
+  cursor: pointer;
+}
+
+.video .image {
+  width: 100px
+}
+
+.download-footer {
+  position: fixed;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  justify-content: space-between;
+  border-top: 1px solid #EEE;
+  width: 100%;
+  left: 0;
+  bottom: 0;
+  background-color: #FFF;
+  z-index: 10;
+}

@@ -1,34 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import Rx from 'rxjs/Rx';
-import CREDENTIALS from './client_secret.json';
-
-const Youtube = require('youtube-api');
-
-Youtube.authenticate({
-  type: 'key',
-  key: CREDENTIALS.key,
-});
-
-const playListItemsList$ = Rx.Observable.bindNodeCallback(Youtube.playlistItems.list);
-const videoList$ = Rx.Observable.bindNodeCallback(Youtube.videos.list);
-const onPlaylist$ = Rx.Observable.fromEvent(ipcMain, 'playlistId', (event, arg) => ({ event, arg }))
-  .mergeMap(({ arg }) => (
-    playListItemsList$({
-      part: 'snippet',
-      maxResults: 50,
-      playlistId: arg,
-    }).map(res => res[0].items.map(v => v.snippet.resourceId.videoId))
-    .mergeMap(ids => videoList$({ part: 'snippet', id: ids.join(',') }))
-    .map(res => res[0].items)
-  ), ({ event }, res) => ({ event, res }));
-
-onPlaylist$.subscribe(({ event, res }) => {
-  event.sender.send('playlistId', res);
-});
+import { app, BrowserWindow } from 'electron';
+import observables from './observables';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+
+observables(mainWindow); // inject mainWindow reference to rx observables
 
 const createWindow = () => {
   // Create the browser window.
