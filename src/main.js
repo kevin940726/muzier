@@ -5,14 +5,16 @@ import observables from './observables';
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 
-observables(mainWindow); // inject mainWindow reference to rx observables
-
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 375,
     height: 667,
+    resizable: false,
+    title: 'Muzier',
   });
+
+  observables(mainWindow); // inject mainWindow reference to rx observables
 
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}/index.html`);

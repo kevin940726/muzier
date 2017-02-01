@@ -1,9 +1,12 @@
 /* global gapi */
 import Inferno from 'inferno';
 import Component from 'inferno-component';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer, remote } from 'electron';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/fromEvent';
+import settings from 'electron-settings';
+
+const { dialog } = remote;
 
 class InputPlaylist extends Component {
   constructor() {
@@ -189,7 +192,17 @@ class Playlist extends Component {
     const list = playlist.filter((cur, i) => checked[i]).map(v => v.id);
 
     if (list.length && !isDownloading) {
-      ipcRenderer.send('downloadPlaylist', list);
+      if (!settings.hasSync('downloadPath')) {
+        dialog.showOpenDialog({
+          title: 'Where to save the tracks?',
+          properties: ['openDirectory'],
+        }, (filePaths) => {
+          settings.set('downloadPath', filePaths[0])
+            .then(() => ipcRenderer.send('downloadPlaylist', list));
+        });
+      } else {
+        ipcRenderer.send('downloadPlaylist', list);
+      }
 
       this.setState({ isDownloading: true });
     }

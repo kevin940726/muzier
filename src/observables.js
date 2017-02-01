@@ -4,13 +4,14 @@ import youtubedl from 'youtube-dl';
 import fs from 'fs';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
+import settings from 'electron-settings';
 import CREDENTIALS from './client_secret.json';
 
 const Youtube = require('youtube-api');
 
 Youtube.authenticate({
   type: 'key',
-  key: CREDENTIALS.key,
+  key: CREDENTIALS.key, // replace your api key here
 });
 
 const playListItemsList$ = Rx.Observable.bindNodeCallback(Youtube.playlistItems.list);
@@ -57,7 +58,7 @@ const onPlaylistEnd$ = downloadPlaylist$
   .mergeMap(videos => Rx.Observable.zip(
     ...videos.map(({ video, info }) => {
       const stream = fs.createWriteStream(path.join(
-        '/Users/Kai/Downloads/yt',
+        settings.getSync('downloadPath') || __dirname,
         `${info.title}.mp3`,
       ));
 
