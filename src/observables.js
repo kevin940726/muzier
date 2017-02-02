@@ -52,7 +52,7 @@ const soundcloudPlayListItemsList$ = url => Rx.Observable.bindNodeCallback(sound
   })))
   .catch(msg => Rx.Observable.of({ err: true, msg }));
 
-const onPlaylist$ = Rx.Observable.fromEvent(ipcMain, 'playlistId', (event, arg) => ({ event, arg }))
+const onPlaylist$ = Rx.Observable.fromEvent(ipcMain, 'playlistFetch', (event, arg) => ({ event, arg }))
   .mergeMap(({ arg }) => (
     Rx.Observable.merge(
       youtubePlayListItemsList$(arg),

@@ -1,4 +1,3 @@
-/* global SC */
 import Inferno from 'inferno';
 import Component from 'inferno-component';
 import { ipcRenderer, remote } from 'electron';
@@ -12,9 +11,21 @@ class InputPlaylist extends Component {
   constructor() {
     super();
 
+    this.state = {
+      isFetching: false,
+    };
+
     this.playListItemsList = null;
 
     this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  componentDidMount() {
+    const onPlaylist$ = Observable.fromEvent(ipcRenderer, 'playlistFetch', (event, arg) => arg);
+
+    onPlaylist$.subscribe(() => {
+      this.setState({ isFetching: false });
+    });
   }
 
   handleSubmit(e) {
@@ -23,23 +34,26 @@ class InputPlaylist extends Component {
 
     if (value) {
       ipcRenderer.send('playlistId', this.playlistIdInput.value);
+      this.setState({ isFetching: true });
     }
   }
 
   render() {
+    const { isFetching } = this.state;
+
     return (
       <form onSubmit={this.handleSubmit} className="input-playlist">
-        <label className="label" htmlFor="playlistId">Playlist ID:</label>
+        <label className="label" htmlFor="playlistId">Playlist URL</label>
         <p className="control has-addons">
           <input
             ref={(ref) => { this.playlistIdInput = ref; }}
             className="input is-expanded"
             id="playlistId"
             type="text"
-            placeholder="Enter playlist id"
-            defaultValue="FLp9N6FdCzTyQZKMOZEz2Kjw"
+            placeholder="Enter playlist url"
+            defaultValue="https://www.youtube.com/playlist?list=FLp9N6FdCzTyQZKMOZEz2Kjw"
           />
-          <button type="submit" className="button is-primary">PULL</button>
+          <button type="submit" className={`button is-primary ${isFetching ? 'is-loading' : ''}`}>PULL</button>
         </p>
       </form>
     );
@@ -139,7 +153,7 @@ class Playlist extends Component {
   }
 
   componentDidMount() {
-    const onPlaylist$ = Observable.fromEvent(ipcRenderer, 'playlistId', (event, arg) => arg);
+    const onPlaylist$ = Observable.fromEvent(ipcRenderer, 'playlistFetch', (event, arg) => arg);
     const onDownloadProgress$ = Observable.fromEvent(ipcRenderer, 'downloadProgress', (event, arg) => arg);
     const onPlaylistSize$ = Observable.fromEvent(ipcRenderer, 'playlistSize', (event, arg) => arg);
     const onPlaylistEnd$ = Observable.fromEvent(ipcRenderer, 'playlistEnd');
@@ -150,8 +164,6 @@ class Playlist extends Component {
           playlist,
           checked: new Array(playlist.length).fill(false),
         });
-      } else if (playlist.err) {
-        console.error(playlist.msg);
       }
     });
 
