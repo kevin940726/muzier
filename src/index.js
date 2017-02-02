@@ -1,4 +1,4 @@
-/* global gapi */
+/* global SC */
 import Inferno from 'inferno';
 import Component from 'inferno-component';
 import { ipcRenderer, remote } from 'electron';
@@ -19,8 +19,9 @@ class InputPlaylist extends Component {
 
   handleSubmit(e) {
     e.preventDefault();
+    const value = this.playlistIdInput && this.playlistIdInput.value;
 
-    if (this.playlistIdInput && this.playlistIdInput.value) {
+    if (value) {
       ipcRenderer.send('playlistId', this.playlistIdInput.value);
     }
   }
@@ -144,10 +145,14 @@ class Playlist extends Component {
     const onPlaylistEnd$ = Observable.fromEvent(ipcRenderer, 'playlistEnd');
 
     onPlaylist$.subscribe((playlist) => {
-      this.setState({
-        playlist,
-        checked: new Array(playlist.length).fill(false),
-      });
+      if (playlist && playlist.length) {
+        this.setState({
+          playlist,
+          checked: new Array(playlist.length).fill(false),
+        });
+      } else if (playlist.err) {
+        console.error(playlist.msg);
+      }
     });
 
     onPlaylistSize$.subscribe((size) => {
@@ -189,7 +194,7 @@ class Playlist extends Component {
   }
   handleDownloadClick() {
     const { playlist, checked, isDownloading } = this.state;
-    const list = playlist.filter((cur, i) => checked[i]).map(v => v.id);
+    const list = playlist.filter((cur, i) => checked[i]).map(v => v.url);
 
     if (list.length && !isDownloading) {
       if (!settings.hasSync('downloadPath')) {
@@ -229,9 +234,9 @@ class Playlist extends Component {
         )}
         {playlist.map((video, index) => (
           <Video
-            thumbnail={video.snippet.thumbnails.default.url}
-            title={video.snippet.title}
-            channelTitle={video.snippet.channelTitle}
+            thumbnail={video.thumbnail}
+            title={video.title}
+            channelTitle={video.channelTitle}
             handleClick={this.handleVideoClick(index)}
             isChecked={checked[index]}
           />

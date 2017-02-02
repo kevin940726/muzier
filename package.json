@@ -50,6 +50,7 @@
     "inferno": "^1.2.2",
     "inferno-component": "^1.2.2",
     "rxjs": "^5.0.3",
+    "soundcloud-resolve": "^1.0.2",
     "youtube-api": "^2.0.6",
     "youtube-dl": "^1.11.1"
   },

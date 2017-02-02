@@ -5,27 +5,61 @@ import fs from 'fs';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import settings from 'electron-settings';
+import SC from 'soundcloud-resolve';
 import CREDENTIALS from './client_secret.json';
 
 const Youtube = require('youtube-api');
 
 Youtube.authenticate({
   type: 'key',
-  key: CREDENTIALS.key, // replace your api key here
+  key: CREDENTIALS.youtube, // replace your api key here
 });
 
-const playListItemsList$ = Rx.Observable.bindNodeCallback(Youtube.playlistItems.list);
+const soundcloudResolve = (url, cb) => SC(CREDENTIALS.soundcloud, url, cb);
+
 const videoList$ = Rx.Observable.bindNodeCallback(Youtube.videos.list);
+
+const youtubePlayListItemsList$ = (url) => {
+  const isUrl = /list=(\w+)/g.exec(url);
+  const playlistId = isUrl ? isUrl[1] : url;
+
+  return Rx.Observable.bindNodeCallback(Youtube.playlistItems.list)({
+    part: 'snippet',
+    maxResults: 50,
+    playlistId,
+  })
+    .mergeMap(res => videoList$({
+      part: 'snippet',
+      id: res[0].items
+        .map(v => v.snippet.resourceId.videoId)
+        .join(','),
+    }))
+    .map(res => res[0].items.map(item => ({
+      thumbnail: item.snippet.thumbnails.default.url,
+      title: item.snippet.title,
+      channelTitle: item.snippet.channelTitle,
+      url: `http://www.youtube.com/watch?v=${item.id}`,
+    })))
+    .catch(msg => Rx.Observable.of({ err: true, msg }));
+};
+
+const soundcloudPlayListItemsList$ = url => Rx.Observable.bindNodeCallback(soundcloudResolve)(url)
+  .map(res => res[0].map(item => ({
+    thumbnail: item.artwork_url,
+    title: item.title,
+    channelTitle: item.user.username,
+    url: item.permalink_url,
+  })))
+  .catch(msg => Rx.Observable.of({ err: true, msg }));
 
 const onPlaylist$ = Rx.Observable.fromEvent(ipcMain, 'playlistId', (event, arg) => ({ event, arg }))
   .mergeMap(({ arg }) => (
-    playListItemsList$({
-      part: 'snippet',
-      maxResults: 50,
-      playlistId: arg,
-    }).map(res => res[0].items.map(v => v.snippet.resourceId.videoId))
-    .mergeMap(ids => videoList$({ part: 'snippet', id: ids.join(',') }))
-    .map(res => res[0].items)
+    Rx.Observable.merge(
+      youtubePlayListItemsList$(arg),
+      soundcloudPlayListItemsList$(arg),
+    )
+      .single(res => res && res.length && !res.err)
+      .catch(msg => Rx.Observable.of({ err: true, msg }))
   ), ({ event }, res) => ({ event, res }));
 
 onPlaylist$.subscribe(({ event, res }) => {
@@ -33,8 +67,8 @@ onPlaylist$.subscribe(({ event, res }) => {
 });
 
 const downloadPlaylist$ = Rx.Observable.fromEvent(ipcMain, 'downloadPlaylist', (event, arg) => arg)
-  .map(playlist => playlist.map(id => youtubedl(
-    `http://www.youtube.com/watch?v=${id}`,
+  .map(playlist => playlist.map(url => youtubedl(
+    url,
     ['-o', '%(title)s.%(ext)s'],
   )))
   .mergeMap(videos => Rx.Observable.zip(
